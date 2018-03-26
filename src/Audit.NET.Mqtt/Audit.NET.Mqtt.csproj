@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Send Audit.NET Trail Logs as connectionless Mqtt to a remote host</Description>
+    <Copyright>Copyright 2018</Copyright>
+    <AssemblyTitle>Audit.Mqtt</AssemblyTitle>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>David Bown</Authors>
+    <TargetFrameworks>netstandard1.3</TargetFrameworks>
+    <DefineConstants>$(DefineConstants);STRONG_NAME</DefineConstants>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>Audit.NET.Mqtt</AssemblyName>
+    <AssemblyOriginatorKeyFile>../StrongName/Audit.NET.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
+    <PackageId>Audit.NET.Mqtt</PackageId>
+    <PackageTags>Audit;Trail;Log;MQTT</PackageTags>
+    <PackageIconUrl>http://i.imgur.com/pMNmmpH.png</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/thepirat000/Audit.NET/tree/master/src/Audit.NET.Mqtt</PackageProjectUrl>
+    <PackageTargetFallback Condition=" '$(TargetFramework)' == 'netstandard1.3' ">$(PackageTargetFallback);dnxcore50;portable-net45+win8</PackageTargetFallback>
+    <NetStandardImplicitPackageVersion Condition=" '$(TargetFramework)' == 'netstandard1.3' ">1.6.1</NetStandardImplicitPackageVersion>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Audit.NET\Audit.NET.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+    <Reference Include="System" />
+    <Reference Include="Microsoft.CSharp" />
+    <PackageReference Include="MQTTnet" Version="2.7.1" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
+    <PackageReference Include="MQTTnet" Version="2.7.1" />
+  </ItemGroup>
+
+</Project>
