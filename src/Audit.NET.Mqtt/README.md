@@ -20,8 +20,8 @@ For example:
 ```c#
 Audit.Core.Configuration.DataProvider = new MqttDataProvider()
 {
-    RemoteAddress = IPAddress.Parse("127.0.0.1"),
-    RemotePort = 1883, 
+	RemoteAddress = "127.0.0.1",
+	RemotePort = 1883, 
 	EnableTLS = true,
 	TopicName = "some/topic",
 	Credentials = new System.Net.NetworkCredential("username", password)
