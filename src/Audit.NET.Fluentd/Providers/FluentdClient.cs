@@ -5,6 +5,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Linq;
+
+#if(NETSTANDARD1_3)
+using System.Reflection;
+#endif
 
 namespace Audit.Fluentd.Providers
 {
@@ -62,18 +67,6 @@ namespace Audit.Fluentd.Providers
             Cleanup();
         }
 
-        private static object SerializePropertyValue(string propertyKey, object propertyValue)
-        {
-            if (propertyValue == null || Convert.GetTypeCode(propertyValue) != TypeCode.Object || propertyValue is decimal)
-            {
-                return propertyValue;   // immutable
-            }
-            else
-            {
-                return propertyValue.ToString();
-            }
-        }
-
         ConcurrentQueue<Tuple<TaskCompletionSource<bool>, AuditEvent>> queue = new ConcurrentQueue<Tuple<TaskCompletionSource<bool>, AuditEvent>>();
         
         System.Threading.CancellationTokenSource newQueueItemDelayCancellationSource;
@@ -121,26 +114,39 @@ namespace Audit.Fluentd.Providers
 
         private void Write(AuditEvent auditEvent)
         {
-            var record = new Dictionary<string, object> {
-                { "EventType", auditEvent.EventType },
-                { "StartDate", auditEvent.StartDate },
-                { "EndDate", auditEvent.EndDate },
-                { "Duration", auditEvent.Duration }
-            };
+            var record = new Dictionary<string, object>();
 
-            if(auditEvent.Environment != null)
+            SetProperty(record, "eventType", auditEvent.EventType);
+            SetProperty(record, "startDate", auditEvent.StartDate);
+            SetProperty(record, "endDate", auditEvent.EndDate);
+            SetProperty(record, "duration", auditEvent.Duration);
+
+            if (auditEvent.Environment != null)
             {
-                AddProperty(record, "AssemblyName", auditEvent.Environment.AssemblyName);
-                AddProperty(record, "CallingMethodName", auditEvent.Environment.CallingMethodName);
-                AddProperty(record, "Culture", auditEvent.Environment.Culture);
-                AddProperty(record, "Exception", auditEvent.Environment.Exception);
-                AddProperty(record, "MachineName", auditEvent.Environment.MachineName);
-                AddProperty(record, "UserName", auditEvent.Environment.UserName);
+                SetProperty(record, "assemblyName", auditEvent.Environment.AssemblyName);
+                SetProperty(record, "callingMethodName", auditEvent.Environment.CallingMethodName);
+                SetProperty(record, "culture", auditEvent.Environment.Culture);
+                SetProperty(record, "domainName", auditEvent.Environment.DomainName);
+                SetProperty(record, "exception", auditEvent.Environment.Exception);                
+                SetProperty(record, "machineName", auditEvent.Environment.MachineName);
+                SetProperty(record, "userName", auditEvent.Environment.UserName);
             }
 
-            //TODO: auditEvent.Target
+            if(auditEvent.Target != null)
+            {
+                var targetDictionary = new Dictionary<string, object>();
+                SetProperty(targetDictionary, "type", auditEvent.Target.Type);
+                SetProperty(targetDictionary, "serializedOld", auditEvent.Target.SerializedOld);
+                SetProperty(targetDictionary, "serializedNew", auditEvent.Target.SerializedNew);
+                SetProperty(record, "target", targetDictionary);
+            }
 
-            //If there are custom fields Serialize them.
+            if((auditEvent.Comments?.Count ?? 0) > 0)
+            {
+                SetProperty(record, "comments", auditEvent.Comments.ToArray());
+            }
+
+            //If there are custom fields Serialize them in the main object
             if ((auditEvent.CustomFields?.Count ?? 0) > 0)
             {
                 foreach (var property in auditEvent.CustomFields)
@@ -148,21 +154,84 @@ namespace Audit.Fluentd.Providers
                     var propertyKey = property.Key.ToString();
 
                     if (string.IsNullOrEmpty(propertyKey) || property.Value == null)
+                    {
                         continue;
+                    }
 
-                    record[propertyKey] = SerializePropertyValue(propertyKey, property.Value);
+                    SetProperty(record, propertyKey, property.Value);
                 }
             }
 
             this.emitter.Emit(auditEvent.StartDate, this.Tag, record);
         }
 
-        private void AddProperty(Dictionary<string, object> record, string propertyName, object property)
+        private void SetProperty(Dictionary<string, object> record, string propertyName, object propertyValue)
         {
-            if(property != null)
+            if(propertyValue != null)
             {
-                record.Add(propertyName, property);
+                if (propertyValue is Guid || propertyValue is Guid?)
+                {
+                    record[propertyName] = propertyValue.ToString();
+                }
+                else if (propertyValue is DateTimeOffset)
+                {
+                    record[propertyName] = ((DateTimeOffset)propertyValue).ToUnixTimeMilliseconds() * 1000000;
+                }
+                else if(propertyValue is DateTimeOffset?)
+                {
+                    record[propertyName] = (propertyValue as DateTimeOffset?).Value.ToUnixTimeMilliseconds() * 1000000;
+                }
+                else if(propertyValue.GetType().IsArray)
+                {
+                    record[propertyName] = propertyValue;
+                }
+#if (NETSTANDARD1_3)
+                else if (propertyValue.GetType().GetTypeInfo().ImplementedInterfaces.Any(
+            i => i.IsConstructedGenericType &&
+            i.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
+#else
+                else if (propertyValue.GetType().GetInterfaces().Any(
+                i => i.IsGenericType &&
+                i.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
+#endif
+                {
+                    record[propertyName] = propertyValue;
+                }
+                else if (Convert.GetTypeCode(propertyValue) == TypeCode.Object)
+                {
+                    record[propertyName] = ConvertObjectToDictionary(propertyValue);
+                }
+                else
+                {
+                    record[propertyName] = propertyValue;
+                }
             } 
+        }
+
+        private Dictionary<string, object> ConvertObjectToDictionary(object obj)
+        {
+            if(obj == null)
+            {
+                return null;
+            }
+
+            var dictionary = new Dictionary<string, object>();
+
+#if (NETSTANDARD1_3)
+            foreach (var property in obj.GetType().GetRuntimeProperties())
+            {
+                var propValue = property.GetValue(obj);
+                SetProperty(dictionary, property.Name, propValue);
+            }
+#else
+            foreach (var property in obj.GetType().GetProperties())
+            {
+                var propValue = property.GetValue(obj);
+                SetProperty(dictionary, property.Name, propValue);
+            }
+#endif
+
+            return dictionary;
         }
 
         private Task EnsureConnected()
@@ -179,7 +248,7 @@ namespace Audit.Fluentd.Providers
                 return ConnectClient();
             }
 
-#if(NETSTANDARD1_3)
+#if (NETSTANDARD1_3)
             return Task.CompletedTask;
 #else
             return Task.FromResult(0);
@@ -218,7 +287,7 @@ namespace Audit.Fluentd.Providers
             {
                 this.stream?.Dispose();
 
-#if(NETSTANDARD1_3)
+#if (NETSTANDARD1_3)
                 this.client?.Dispose();
 #else
                 this.client.Close();
@@ -233,4 +302,15 @@ namespace Audit.Fluentd.Providers
             }
         }
     }
+
+#if (!NETSTANDARD1_3)
+    internal static class Net45Extensions
+    {
+        public static long ToUnixTimeMilliseconds(this DateTimeOffset dateTimeOffset)
+        {
+            var epoch = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+            return (long)dateTimeOffset.Subtract(epoch).TotalMilliseconds;
+        }
+    }
+#endif
 }
