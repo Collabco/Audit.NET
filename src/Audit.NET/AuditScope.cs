@@ -64,7 +64,6 @@ namespace Audit.Core
                 };
             }
             ProcessExtraFields(options.ExtraFields);
-
         }
         /// <summary>
         /// Starts an audit scope
@@ -199,7 +198,7 @@ namespace Audit.Core
         }
         #endregion
 
-        #region Private fields
+#region Private fields
         private SaveMode _saveMode;
         private EventCreationPolicy _creationPolicy;
         private readonly AuditEvent _event;
@@ -284,7 +283,7 @@ namespace Audit.Core
         /// </summary>
         private void End()
         {
-            if (_ended)
+            if (IsEndedOrDisabled())
             {
                 return;
             }
@@ -306,7 +305,7 @@ namespace Audit.Core
         /// </summary>
         private async Task EndAsync()
         {
-            if (_ended)
+            if (IsEndedOrDisabled())
             {
                 return;
             }
@@ -329,7 +328,7 @@ namespace Audit.Core
         /// </summary>
         public void Save()
         {
-            if (_ended)
+            if (IsEndedOrDisabled())
             {
                 return;
             }
@@ -343,17 +342,25 @@ namespace Audit.Core
         /// </summary>
         public async Task SaveAsync()
         {
-            if (_ended)
+            if (IsEndedOrDisabled())
             {
                 return;
             }
             EndEvent();
             await SaveEventAsync();
         }
-        #endregion
+#endregion
 
-        #region Private Methods
+#region Private Methods
 
+        private bool IsEndedOrDisabled()
+        {
+            if (!_ended && Configuration.AuditDisabled)
+            {
+                this.Discard();
+            }
+            return _ended;
+        }
         // Update event info prior to save
         private void EndEvent()
         {
@@ -393,13 +400,13 @@ namespace Audit.Core
 
         private void SaveEvent(bool forceInsert = false)
         {
-            if (_ended)
+            if (IsEndedOrDisabled())
             {
                 return; 
             }
             // Execute custom on event saving actions
             Configuration.InvokeScopeCustomActions(ActionType.OnEventSaving, this);
-            if (_ended)
+            if (IsEndedOrDisabled())
             {
                 return;
             }
@@ -417,13 +424,13 @@ namespace Audit.Core
 
         private async Task SaveEventAsync(bool forceInsert = false)
         {
-            if (_ended)
+            if (IsEndedOrDisabled())
             {
                 return;
             }
             // Execute custom on event saving actions
             Configuration.InvokeScopeCustomActions(ActionType.OnEventSaving, this);
-            if (_ended)
+            if (IsEndedOrDisabled())
             {
                 return;
             }
