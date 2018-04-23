@@ -39,6 +39,12 @@ namespace Audit.Fluentd.Providers
         public string Tag { get; set; }
 
         /// <summary>
+        /// If enabled, execution is immediately returned to calling application when the audit event is queued for transmission
+        /// </summary>
+        /// <remarks>This is effectively fire and forget, if the audit events are lost you won't know, but performance of calling application is potentially improved</remarks>
+        public bool AsynchronusWrites { get; set; } = false;
+
+        /// <summary>
         /// Sends an event as an Fluentd message
         /// </summary>
         /// <param name="auditEvent">The audit event being created.</param>
@@ -86,7 +92,8 @@ namespace Audit.Fluentd.Providers
             {
                  Host = this.RemoteAddress,
                  Port = this.RemotePort,
-                 Tag = this.Tag
+                 Tag = this.Tag,
+                 AsynchronusWrites = this.AsynchronusWrites
             };
         }
 

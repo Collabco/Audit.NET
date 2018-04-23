@@ -50,6 +50,8 @@ namespace Audit.Fluentd.Providers
 
         public int LingerTime { get; set; } = 10;
 
+        public bool AsynchronusWrites { get; set; } = false;
+
         public Task Publish(AuditEvent auditEvent)
         {
             //Ensure processing task is started with first message being sent. By simply assigning the lazy value.
@@ -57,6 +59,14 @@ namespace Audit.Fluentd.Providers
             var tcs = new TaskCompletionSource<bool>();
             queue.Enqueue(new Tuple<TaskCompletionSource<bool>, AuditEvent>(tcs, auditEvent));
             newQueueItemDelayCancellationSource?.Cancel();
+            if(AsynchronusWrites) //If we are doing asynchronus writes, simply return a complete task.
+            {
+#if(NETSTANDARD1_3)
+                return Task.CompletedTask;
+#else
+                return Task.FromResult(0);
+#endif
+            }
             return tcs.Task;
         }
 
@@ -91,7 +101,7 @@ namespace Audit.Fluentd.Providers
                             throw new InvalidOperationException("No connection is currently available to the Fluentd forwarder, attempting to reconnect, please try again!");
                         }
 
-                        Write(publishTask.Item2);
+                        Write(publishTask.Item2);                        
                         publishTask.Item1.SetResult(true);
                     }
 
@@ -116,10 +126,15 @@ namespace Audit.Fluentd.Providers
         {
             var record = new Dictionary<string, object>();
 
+            SetProperty(record, "id", auditEvent.CustomFields?["id"]); //This shouldn't throw a null reference exception because id is always generated in FluentDataProvider.
             SetProperty(record, "eventType", auditEvent.EventType);
+            SetProperty(record, "source", auditEvent.Source ?? auditEvent.Environment?.AssemblyName);
+            SetProperty(record, "level", auditEvent.AuditLevel);
             SetProperty(record, "startDate", auditEvent.StartDate);
             SetProperty(record, "endDate", auditEvent.EndDate);
             SetProperty(record, "duration", auditEvent.Duration);
+            SetProperty(record, "tenantId", auditEvent.TenantId);
+            SetProperty(record, "userName", auditEvent.UserName ?? auditEvent.Environment?.UserName);
 
             if (auditEvent.Environment != null)
             {
@@ -128,11 +143,10 @@ namespace Audit.Fluentd.Providers
                 SetProperty(record, "culture", auditEvent.Environment.Culture);
                 SetProperty(record, "domainName", auditEvent.Environment.DomainName);
                 SetProperty(record, "exception", auditEvent.Environment.Exception);                
-                SetProperty(record, "machineName", auditEvent.Environment.MachineName);
-                SetProperty(record, "userName", auditEvent.Environment.UserName);
+                SetProperty(record, "machineName", auditEvent.Environment.MachineName);            
             }
 
-            if(auditEvent.Target != null)
+            if (auditEvent.Target != null)
             {
                 var targetDictionary = new Dictionary<string, object>();
                 SetProperty(targetDictionary, "type", auditEvent.Target.Type);
@@ -141,7 +155,7 @@ namespace Audit.Fluentd.Providers
                 SetProperty(record, "target", targetDictionary);
             }
 
-            if((auditEvent.Comments?.Count ?? 0) > 0)
+            if ((auditEvent.Comments?.Count ?? 0) > 0)
             {
                 SetProperty(record, "comments", auditEvent.Comments.ToArray());
             }
@@ -149,7 +163,7 @@ namespace Audit.Fluentd.Providers
             //If there are custom fields Serialize them in the main object
             if ((auditEvent.CustomFields?.Count ?? 0) > 0)
             {
-                foreach (var property in auditEvent.CustomFields)
+                foreach (var property in auditEvent.CustomFields.Where(a => a.Key.ToLowerInvariant() != "id"))
                 {
                     var propertyKey = property.Key.ToString();
 
@@ -162,28 +176,60 @@ namespace Audit.Fluentd.Providers
                 }
             }
 
+            //If the event is derived then there maybe other properties
+#if (NETSTANDARD1_3)
+            if (auditEvent.GetType().GetTypeInfo().IsSubclassOf(typeof(AuditEvent)))
+            {
+                var baseTypeProperties = typeof(AuditEvent).GetRuntimeProperties().Select(p => p.Name);
+                var newProperties = auditEvent.GetType().GetRuntimeProperties().Where(ap => !baseTypeProperties.Contains(ap.Name));
+
+                foreach(var property in newProperties)
+                {
+                    SetProperty(record, property.Name, property.GetValue(auditEvent));
+                }
+            }
+#else
+            if (auditEvent.GetType().IsSubclassOf(typeof(AuditEvent)))
+            {
+                var baseTypeProperties = typeof(AuditEvent).GetProperties().Select(p => p.Name);
+                var newProperties = auditEvent.GetType().GetProperties().Where(ap => !baseTypeProperties.Contains(ap.Name));
+
+                foreach(var property in newProperties)
+                {
+                    SetProperty(record, property.Name, property.GetValue(auditEvent));
+                }
+            }
+#endif
+
             this.emitter.Emit(auditEvent.StartDate, this.Tag, record);
         }
 
         private void SetProperty(Dictionary<string, object> record, string propertyName, object propertyValue)
         {
-            if(propertyValue != null)
+            //Convert property name to camel case
+            var newPropertyName = Char.ToLowerInvariant(propertyName[0]) + propertyName.Substring(1);
+
+            if (propertyValue != null)
             {
                 if (propertyValue is Guid || propertyValue is Guid?)
                 {
-                    record[propertyName] = propertyValue.ToString();
+                    record[newPropertyName] = propertyValue.ToString();
                 }
                 else if (propertyValue is DateTimeOffset)
                 {
-                    record[propertyName] = ((DateTimeOffset)propertyValue).ToUnixTimeMilliseconds() * 1000000;
+                    record[newPropertyName] = ((DateTimeOffset)propertyValue).ToUnixTimeMilliseconds() * 1000000;
                 }
                 else if(propertyValue is DateTimeOffset?)
                 {
-                    record[propertyName] = (propertyValue as DateTimeOffset?).Value.ToUnixTimeMilliseconds() * 1000000;
+                    record[newPropertyName] = (propertyValue as DateTimeOffset?).Value.ToUnixTimeMilliseconds() * 1000000;
                 }
                 else if(propertyValue.GetType().IsArray)
                 {
-                    record[propertyName] = propertyValue;
+                    record[newPropertyName] = propertyValue;
+                }
+                else if(propertyValue is Newtonsoft.Json.Linq.JObject)
+                {
+                    record[newPropertyName] = (propertyValue as Newtonsoft.Json.Linq.JObject).ToObject<Dictionary<string, object>>();
                 }
 #if (NETSTANDARD1_3)
                 else if (propertyValue.GetType().GetTypeInfo().ImplementedInterfaces.Any(
@@ -195,15 +241,15 @@ namespace Audit.Fluentd.Providers
                 i.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
 #endif
                 {
-                    record[propertyName] = propertyValue;
+                    record[newPropertyName] = propertyValue;
                 }
                 else if (Convert.GetTypeCode(propertyValue) == TypeCode.Object)
                 {
-                    record[propertyName] = ConvertObjectToDictionary(propertyValue);
+                    record[newPropertyName] = ConvertObjectToDictionary(propertyValue);
                 }
                 else
                 {
-                    record[propertyName] = propertyValue;
+                    record[newPropertyName] = propertyValue;
                 }
             } 
         }
@@ -257,7 +303,7 @@ namespace Audit.Fluentd.Providers
 
         private void InitializeClient()
         {
-            this.client = new TcpClient();
+            this.client = new TcpClient();            
             this.client.NoDelay = this.NoDelay;
             this.client.ReceiveBufferSize = this.ReceiveBufferSize;
             this.client.SendBufferSize = this.SendBufferSize;
@@ -276,7 +322,7 @@ namespace Audit.Fluentd.Providers
                         throw new InvalidOperationException($"Unable to connect to host {Host}:{Port}. - {connectResult.Exception.InnerException.Message}");
                     }
 
-                    this.stream = this.client.GetStream();
+                    this.stream = this.client.GetStream();                    
                     this.emitter = new FluentdMessageEmitter(this.stream);
                 });
         }

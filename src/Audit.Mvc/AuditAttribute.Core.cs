@@ -27,6 +27,7 @@ namespace Audit.Mvc
         /// Gets or sets a value indicating whether the output should include the Http Request Headers.
         /// </summary>
         public bool IncludeHeaders { get; set; }
+
         /// <summary>
         /// Gets or sets a value indicating the event type name
         /// Can contain the following placeholders:

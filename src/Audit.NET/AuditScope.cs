@@ -50,7 +50,8 @@ namespace Audit.Core
             _event = options.AuditEvent ?? new AuditEvent();
             _event.Environment = environment;
             _event.StartDate = DateTime.Now;
-            _event.EventType = options.EventType;
+            _event.Source = options.Source;
+            _event.EventType = options.EventType;            
             _event.CustomFields = new Dictionary<string, object>();
 
             if (options.TargetGetter != null)
@@ -139,6 +140,15 @@ namespace Audit.Core
         public SaveMode SaveMode
         {
             get { return _saveMode; }
+        }
+
+        /// <summary>
+        /// Indicates the source of the event
+        /// </summary>
+        public string Source
+        {
+            get { return _event.Source; }
+            set { _event.Source = value; }
         }
 
         /// <summary>

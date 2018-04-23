@@ -9,6 +9,11 @@ namespace Audit.Core
     public class AuditScopeOptions
     {
         /// <summary>
+        /// Gets or sets the string representing the source of the event.
+        /// </summary>
+        public string Source { get; set; }
+
+        /// <summary>
         /// Gets or sets the string representing the type of the event.
         /// </summary>
         public string EventType { get; set; }
@@ -48,6 +53,42 @@ namespace Audit.Core
         /// <summary>
         /// Creates an instance of options for an audit scope creation.
         /// </summary>
+        /// <param name="source">A string representing the source of the event.</param>
+        /// <param name="eventType">A string representing the type of the event.</param>
+        /// <param name="targetGetter">The target object getter.</param>
+        /// <param name="extraFields">An anonymous object that contains additional fields to be merged into the audit event.</param>
+        /// <param name="creationPolicy">The event creation policy to use. NULL to use the configured default creation policy.</param>
+        /// <param name="dataProvider">The data provider to use. NULL to use the configured default data provider.</param>
+        /// <param name="isCreateAndSave">To indicate if the scope should be immediately saved after creation.</param>
+        /// <param name="auditEvent">The initialized audit event to use, or NULL to create a new instance of AuditEvent.</param>
+        /// <param name="skipExtraFrames">Used to indicate how many frames in the stack should be skipped to determine the calling method.</param>
+        public AuditScopeOptions(
+            string source,
+            string eventType = null,
+            Func<object> targetGetter = null,
+            object extraFields = null,
+            AuditDataProvider dataProvider = null,
+            EventCreationPolicy? creationPolicy = null,
+            bool isCreateAndSave = false,
+            AuditEvent auditEvent = null,
+            int skipExtraFrames = 0)
+        {
+            Source = source;
+            EventType = eventType ?? "Default";
+            TargetGetter = targetGetter;
+            ExtraFields = extraFields;
+            CreationPolicy = creationPolicy ?? Configuration.CreationPolicy;
+            DataProvider = dataProvider ?? Configuration.DataProvider;
+            IsCreateAndSave = isCreateAndSave;
+            AuditEvent = auditEvent;
+            SkipExtraFrames = skipExtraFrames;
+            CallingMethod = null;
+        }
+
+
+        /// <summary>
+        /// Creates an instance of options for an audit scope creation.
+        /// </summary>
         /// <param name="eventType">A string representing the type of the event.</param>
         /// <param name="targetGetter">The target object getter.</param>
         /// <param name="extraFields">An anonymous object that contains additional fields to be merged into the audit event.</param>
@@ -81,7 +122,7 @@ namespace Audit.Core
         /// Initializes a new instance of the <see cref="AuditScopeOptions"/> class.
         /// </summary>
         public AuditScopeOptions()
-            : this(null)
+            : this(eventType: null)
         {
         }
     }

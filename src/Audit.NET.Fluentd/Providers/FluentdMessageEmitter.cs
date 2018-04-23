@@ -24,14 +24,14 @@ namespace Audit.Fluentd.Providers
             this.serializationContext.Serializers.Register(new OrdinaryDictionarySerializer(this.serializationContext, embeddedContext));
         }
 
-        public void Emit(DateTime timestamp, string tag, IDictionary<string, object> data)
+        public void Emit(DateTimeOffset timestamp, string tag, IDictionary<string, object> data)
         {
             long unixTimestamp = timestamp.ToUniversalTime().Subtract(unixEpoch).Ticks / 10000000;
             this.packer.PackArrayHeader(3);
             this.packer.PackString(tag, Encoding.UTF8);
             this.packer.Pack((ulong)unixTimestamp);
             this.packer.Pack(data, serializationContext);
-            this.destination.Flush();    // Change to packer.Flush() when packer is upgraded
+            this.destination.Flush();    // Change to packer.Flush() when packer is upgraded            
         }
     }
 }

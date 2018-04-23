@@ -17,10 +17,49 @@ namespace Audit.Core
         public AuditEventEnvironment Environment { get; set; }
 
         /// <summary>
+        /// The id of associated with this type of event
+        /// </summary>
+        /// <remarks>Not the</remarks>
+        [JsonProperty(Order = -998)]
+        public int? EventId { get; set; }
+
+        /// <summary>
         /// Indicates the change type (i.e. CustomerOrder Update)
         /// </summary>
         [JsonProperty(Order = -999)]
         public string EventType { get; set; }
+
+        /// <summary>
+        /// The source of the event
+        /// </summary>
+        [JsonProperty()]
+        public string Source { get; set; }
+
+        public enum AuditLevels
+        {
+            Success = 0,
+            Failure = 1,
+            Information = 100,
+            Warning = 102,
+            Error = 103,
+            Critical = 104
+        }
+
+        /// <summary>
+        /// Indicates the success or error level of the event
+        /// </summary>
+        [JsonProperty("AuditLevel", NullValueHandling = NullValueHandling.Ignore)]
+        public AuditLevels AuditLevel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the tenant id of the user responsible for the action.
+        /// </summary>
+        public string TenantId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user responsible for the action.
+        /// </summary>
+        public string UserName { get; set; }
 
         /// <summary>
         /// The extension data. 
@@ -45,13 +84,13 @@ namespace Audit.Core
         /// The date then the event started
         /// </summary>
         [JsonProperty("StartDate")]
-        public DateTime StartDate { get; set; }
+        public DateTimeOffset StartDate { get; set; }
 
         /// <summary>
         /// The date then the event finished
         /// </summary>
         [JsonProperty("EndDate")]
-        public DateTime? EndDate { get; set; }
+        public DateTimeOffset? EndDate { get; set; }
 
         ///<summary>
         /// The duration of the operation in milliseconds.

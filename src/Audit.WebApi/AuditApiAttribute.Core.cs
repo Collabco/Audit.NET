@@ -43,6 +43,13 @@ namespace Audit.WebApi
         /// it's a forwand-only stream that can be read only once. 
         /// </remarks>
         public bool IncludeRequestBody { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating the source of the event
+        /// </summary>
+        /// <remarks>Overrides the globally defined event source</remarks>
+        public string Source { get; set; }
+
         /// <summary>
         /// Gets or sets a string indicating the event type to use.
         /// Can contain the following placeholders:
@@ -51,6 +58,13 @@ namespace Audit.WebApi
         /// - {verb}: replaced with the HTTP verb used (GET, POST, etc).
         /// </summary>
         public string EventTypeName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the id number associated with this type of event
+        /// </summary>
+        /// <remarks>This an id that describes the type of even and should not be confused with the id of the AuditEvent written to the data provider</remarks>
+        public int? EventId { get; set; }
+
         /// <summary>
         /// Gets or sets a value indicating whether the action arguments should be pre-serialized to the audit event.
         /// </summary>
@@ -69,7 +83,7 @@ namespace Audit.WebApi
             var actionDescriptior = actionContext.ActionDescriptor as ControllerActionDescriptor;
             var auditAction = new AuditApiAction
             {
-                UserName = httpContext.User?.Identity.Name,
+                UserName = httpContext.User?.Claims.Where(c => c.Type == "preferred_username").Select(c => c.Value).FirstOrDefault() ?? httpContext.User?.Identity.Name,
                 IpAddress = httpContext.Connection?.RemoteIpAddress?.ToString(),
                 RequestUrl = string.Format("{0}://{1}{2}", httpContext.Request.Scheme, httpContext.Request.Host, httpContext.Request.Path),
                 HttpMethod = actionContext.HttpContext.Request.Method,
@@ -86,9 +100,15 @@ namespace Audit.WebApi
             // Create the audit scope
             var auditEventAction = new AuditEventWebApi()
             {
-                Action = auditAction
+                Action = auditAction,
+                EventId = EventId,
+                TenantId = httpContext.User?.Claims.Where(c => c.Type == "tenant").Select(c => c.Value).FirstOrDefault()
             };
-            var auditScope = await AuditScope.CreateAsync(new AuditScopeOptions() { EventType = eventType, AuditEvent = auditEventAction, CallingMethod = actionDescriptior.MethodInfo });
+            var auditScope = await AuditScope.CreateAsync(new AuditScopeOptions() { Source = Source ?? AuditApiDefaults.Source , EventType = eventType, AuditEvent = auditEventAction, CallingMethod = actionDescriptior.MethodInfo });
+
+            //Use request username or environment username as fall back on the event data
+            auditEventAction.UserName = auditAction.UserName ?? auditEventAction.Environment?.UserName;
+
             httpContext.Items[AuditApiActionKey] = auditAction;
             httpContext.Items[AuditApiScopeKey] = auditScope;
         }
@@ -111,6 +131,20 @@ namespace Audit.WebApi
                 {
                     var statusCode = context.Result is ObjectResult && (context.Result as ObjectResult).StatusCode.HasValue ? (context.Result as ObjectResult).StatusCode.Value  
                         : context.Result is StatusCodeResult ? (context.Result as StatusCodeResult).StatusCode : context.HttpContext.Response.StatusCode;
+
+                    if(statusCode >= 100 && statusCode <= 399) //Informational responses (100-199), redirects (300-399) and success codes (200-299)
+                    {
+                        auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Success;
+                    }
+                    else if(statusCode >= 400 && statusCode <= 499)//Bad requests and conflicts etc anything in the 400-499 range
+                    {
+                        auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Failure;
+                    }
+                    else //500-599 range
+                    {
+                        auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Error;
+                    }
+
                     auditAction.ResponseStatusCode = statusCode;
                     auditAction.ResponseStatus = GetStatusCodeString(auditAction.ResponseStatusCode);
                     if (IncludeResponseBody)
@@ -124,6 +158,7 @@ namespace Audit.WebApi
                 }
                 else
                 {
+                    auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Error;
                     auditAction.ResponseStatusCode = 500;
                     auditAction.ResponseStatus = "Internal Server Error";
                 }
