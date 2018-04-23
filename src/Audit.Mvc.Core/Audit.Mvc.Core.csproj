@@ -14,7 +14,7 @@
     <AssemblyOriginatorKeyFile>../StrongName/Audit.NET.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
-    <PackageId>Audit.Mvc.Core</PackageId>
+    <PackageId>Collabco.Audit.Mvc.Core</PackageId>
     <PackageTags>Audit;Trail;Log;MVC;ActionFilter</PackageTags>
     <PackageIconUrl>http://i.imgur.com/5YjHlfd.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/thepirat000/Audit.NET/tree/master/src/Audit.Mvc</PackageProjectUrl>

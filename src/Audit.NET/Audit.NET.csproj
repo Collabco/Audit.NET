@@ -14,7 +14,7 @@
     <AssemblyOriginatorKeyFile>../StrongName/Audit.NET.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
-    <PackageId>Audit.NET</PackageId>
+    <PackageId>Collabco.Audit.NET</PackageId>
     <PackageTags>Audit;Trail;Log</PackageTags>
     <PackageIconUrl>http://i.imgur.com/jQhfBSo.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/thepirat000/Audit.NET</PackageProjectUrl>

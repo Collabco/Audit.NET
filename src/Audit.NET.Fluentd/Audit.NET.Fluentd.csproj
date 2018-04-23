@@ -14,7 +14,7 @@
     <AssemblyOriginatorKeyFile>../StrongName/Audit.NET.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
-    <PackageId>Audit.NET.Fluentd</PackageId>
+    <PackageId>Collabco.Audit.NET.Fluentd</PackageId>
     <PackageTags>Audit;Trail;Log;Fluentd</PackageTags>
     <PackageIconUrl>http://i.imgur.com/pMNmmpH.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/thepirat000/Audit.NET/tree/master/src/Audit.NET.Fluentd</PackageProjectUrl>

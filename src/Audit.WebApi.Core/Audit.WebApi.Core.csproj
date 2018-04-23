@@ -14,7 +14,7 @@
     <AssemblyOriginatorKeyFile>../StrongName/Audit.NET.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
-    <PackageId>Audit.WebApi.Core</PackageId>
+    <PackageId>Collabco.Audit.WebApi.Core</PackageId>
     <PackageTags>Audit;Trail;Log;WebApi</PackageTags>
     <PackageIconUrl>http://i.imgur.com/GkqLSk8.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/thepirat000/Audit.NET/tree/master/src/Audit.WebApi</PackageProjectUrl>
