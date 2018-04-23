@@ -12,6 +12,7 @@
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <DebugType Condition=" '$(TargetFramework)' == 'net451' ">Full</DebugType>
+    <Configurations>Debug;Release;CI</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

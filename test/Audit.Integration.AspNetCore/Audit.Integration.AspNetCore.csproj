@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <StartupObject>Audit.Integration.AspNetCore.Program</StartupObject>
+    <Configurations>Debug;Release;CI</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
