@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,6 +41,11 @@ namespace Audit.WebApi
         /// </summary>
         public bool SerializeActionParameters { get; set; }
         /// <summary>
+        /// Gets or sets a value indicating the source of the event
+        /// </summary>
+        /// <remarks>Overrides the globally defined event source</remarks>
+        public string Source { get; set; }
+        /// <summary>
         /// Gets or sets a string indicating the event type to use.
         /// Can contain the following placeholders:
         /// - {controller}: replaced with the controller name.
@@ -47,6 +53,11 @@ namespace Audit.WebApi
         /// - {verb}: replaced with the HTTP verb used (GET, POST, etc).
         /// </summary>
         public string EventTypeName { get; set; }
+        /// <summary>
+        /// Gets or sets the id number associated with this type of event
+        /// </summary>
+        /// <remarks>This an id that describes the type of even and should not be confused with the id of the AuditEvent written to the data provider</remarks>
+        public int? EventId { get; set; }
 
         private const string AuditApiActionKey = "__private_AuditApiAction__";
         private const string AuditApiScopeKey = "__private_AuditApiScope__";
@@ -60,9 +71,11 @@ namespace Audit.WebApi
             var request = actionContext.Request;
             var contextWrapper = new ContextWrapper(request);
 
+            var claimsIdentity = ClaimsPrincipal.Current?.Identity as ClaimsIdentity;
+
             var auditAction = new AuditApiAction
             {
-                UserName = actionContext.RequestContext?.Principal?.Identity?.Name,
+                UserName = claimsIdentity?.Claims.Where(c => c.Type == "preferred_username").Select(c => c.Value).FirstOrDefault() ?? actionContext.RequestContext?.Principal?.Identity?.Name,
                 IpAddress = contextWrapper.GetClientIp(),
                 RequestUrl = request.RequestUri?.AbsoluteUri,
                 HttpMethod = actionContext.Request.Method?.Method,
@@ -79,10 +92,13 @@ namespace Audit.WebApi
             // Create the audit scope
             var auditEventAction = new AuditEventWebApi()
             {
-                Action = auditAction
+                Action = auditAction,
+                EventId = EventId,
+                TenantId = claimsIdentity?.Claims.Where(c => c.Type == "tenant").Select(c => c.Value).FirstOrDefault()
             };
             var options = new AuditScopeOptions()
             {
+                Source = Source ?? AuditApiDefaults.Source,
                 EventType = eventType,
                 AuditEvent = auditEventAction,
                 CallingMethod = (actionContext.ActionDescriptor as ReflectedHttpActionDescriptor)?.MethodInfo
@@ -110,6 +126,20 @@ namespace Audit.WebApi
                 {
                     auditAction.ResponseStatus = actionExecutedContext.Response.ReasonPhrase;
                     auditAction.ResponseStatusCode = (int)actionExecutedContext.Response.StatusCode;
+
+                    if(auditAction.ResponseStatusCode >= 100 && auditAction.ResponseStatusCode <= 399) //Informational responses (100-199), redirects (300-399) and success codes (200-299)
+                    {
+                        auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Success;
+                    }
+                    else if(auditAction.ResponseStatusCode >= 400 && auditAction.ResponseStatusCode <= 499)//Bad requests and conflicts etc anything in the 400-499 range
+                    {
+                        auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Failure;
+                    }
+                    else //500-599 range
+                    {
+                        auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Error;
+                    }
+
                     if (IncludeResponseBody)
                     {
                         var objContent = actionExecutedContext.Response.Content as ObjectContent;

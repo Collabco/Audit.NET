@@ -29,6 +29,12 @@ namespace Audit.Mvc
         public bool IncludeHeaders { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating the source of the event
+        /// </summary>
+        /// <remarks>Overrides the globally defined event source</remarks>
+        public string Source { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating the event type name
         /// Can contain the following placeholders:
         /// - {controller}: replaced with the controller name.
@@ -36,6 +42,13 @@ namespace Audit.Mvc
         /// - {verb}: replaced with the HTTP verb used (GET, POST, etc).
         /// </summary>
         public string EventTypeName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the id number associated with this type of event
+        /// </summary>
+        /// <remarks>This an id that describes the type of even and should not be confused with the id of the AuditEvent written to the data provider</remarks>
+        public int? EventId { get; set; }
+
         /// <summary>
         /// Gets or sets a value indicating whether the action arguments should be pre-serialized to the audit event.
         /// </summary>
@@ -52,7 +65,7 @@ namespace Audit.Mvc
 
             var auditAction = new AuditAction()
             {
-                UserName = httpContext.User?.Identity.Name,
+                UserName = httpContext.User?.Claims.Where(c => c.Type == "preferred_username").Select(c => c.Value).FirstOrDefault() ?? httpContext.User?.Identity.Name,
                 IpAddress = httpContext.Connection?.RemoteIpAddress?.ToString(),
                 RequestUrl = string.Format("{0}://{1}{2}", httpContext.Request.Scheme, httpContext.Request.Host, httpContext.Request.Path),
                 HttpMethod = httpContext.Request.Method,
@@ -68,9 +81,11 @@ namespace Audit.Mvc
             // Create the audit scope
             var auditEventAction = new AuditEventMvcAction()
             {
-                Action = auditAction
+                Action = auditAction,
+                EventId = EventId,
+                TenantId = httpContext.User?.Claims.Where(c => c.Type == "tenant").Select(c => c.Value).FirstOrDefault()
             };
-            var auditScope = await AuditScope.CreateAsync(new AuditScopeOptions() { EventType = eventType, AuditEvent = auditEventAction, CallingMethod = actionDescriptior.MethodInfo });
+            var auditScope = await AuditScope.CreateAsync(new AuditScopeOptions() { Source = Source ?? AuditDefaults.Source, EventType = eventType, AuditEvent = auditEventAction, CallingMethod = actionDescriptior.MethodInfo });
             httpContext.Items[AuditActionKey] = auditAction;
             httpContext.Items[AuditScopeKey] = auditScope;
         }
@@ -96,6 +111,7 @@ namespace Audit.Mvc
             if (auditAction?.Exception != null)
             {
                 // An exception was thrown, save the event since OnResultExecutionAsync will not be triggered.
+                auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Error;
                 await auditScope.SaveAsync();
             }
         }
@@ -116,6 +132,19 @@ namespace Audit.Mvc
             var auditScope = httpContext.Items[AuditScopeKey] as AuditScope;
             if (auditScope != null)
             {
+                if (auditAction.ResponseStatusCode >= 100 && auditAction.ResponseStatusCode <= 399) //Informational responses (100-199), redirects (300-399) and success codes (200-299)
+                {
+                    auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Success;
+                }
+                else if (auditAction.ResponseStatusCode >= 400 && auditAction.ResponseStatusCode <= 499)//Bad requests and conflicts etc anything in the 400-499 range
+                {
+                    auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Failure;
+                }
+                else //500-599 range
+                {
+                    auditScope.Event.AuditLevel = AuditEvent.AuditLevels.Error;
+                }
+
                 // Replace the Action field
                 (auditScope.Event as AuditEventMvcAction).Action = auditAction;
                 if (auditScope.EventCreationPolicy == EventCreationPolicy.Manual)
