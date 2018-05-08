@@ -126,7 +126,7 @@ namespace Audit.Fluentd.Providers
         {
             var record = new Dictionary<string, object>();
 
-            SetProperty(record, "_id", auditEvent.CustomFields?["id"]); //This shouldn't throw a null reference exception because id is always generated in FluentDataProvider.
+            SetProperty(record, "id", auditEvent.CustomFields?["id"]); //This shouldn't throw a null reference exception because id is always generated in FluentDataProvider.
             SetProperty(record, "eventType", auditEvent.EventType);
             SetProperty(record, "source", auditEvent.Source ?? auditEvent.Environment?.AssemblyName);
             SetProperty(record, "level", auditEvent.AuditLevel);
