@@ -231,6 +231,10 @@ namespace Audit.Fluentd.Providers
                 {
                     record[newPropertyName] = (propertyValue as Newtonsoft.Json.Linq.JObject).ToObject<Dictionary<string, object>>();
                 }
+                else if (propertyValue is Newtonsoft.Json.Linq.JObject)
+                {
+                    record[propertyName] = (propertyValue as Newtonsoft.Json.Linq.JObject).ToObject<Dictionary<string, object>>();
+                }
 #if (NETSTANDARD1_3)
                 else if (propertyValue.GetType().GetTypeInfo().ImplementedInterfaces.Any(
             i => i.IsConstructedGenericType &&

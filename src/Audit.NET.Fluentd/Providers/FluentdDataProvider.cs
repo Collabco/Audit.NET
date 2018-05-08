@@ -99,13 +99,13 @@ namespace Audit.Fluentd.Providers
 
         private void Send(object eventId, AuditEvent auditEvent)
         {
-            auditEvent.CustomFields["id"] = eventId;
+            auditEvent.CustomFields["_id"] = eventId;
             _client.Value.Publish(auditEvent).GetAwaiter().GetResult();
         }
 
         private Task SendAsync(object eventId, AuditEvent auditEvent)
         {
-           auditEvent.CustomFields["id"] = eventId;
+           auditEvent.CustomFields["_id"] = eventId;
            return _client.Value.Publish(auditEvent);
         }
 
