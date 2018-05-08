@@ -134,6 +134,13 @@ namespace Audit.Fluentd.Providers
             SetProperty(record, "endDate", auditEvent.EndDate);
             SetProperty(record, "duration", auditEvent.Duration);
             SetProperty(record, "tenantId", auditEvent.TenantId);
+
+            if(!string.IsNullOrEmpty(auditEvent.TenantId))
+            {
+                var dateTime = DateTimeOffset.UtcNow;
+                SetProperty(record, "targetIndex", $"audit-{auditEvent.TenantId}-{dateTime.Year}.{dateTime.Month.ToString("D2")}.{dateTime.Day.ToString("D2")}");
+            }
+
             SetProperty(record, "userName", auditEvent.UserName ?? auditEvent.Environment?.UserName);
 
             if (auditEvent.Environment != null)
