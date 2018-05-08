@@ -175,11 +175,11 @@ namespace Audit.Fluentd.Providers
                 }
                 else if (propertyValue is DateTimeOffset)
                 {
-                    record[propertyName] = ((DateTimeOffset)propertyValue).ToUnixTimeMilliseconds() * 1000000;
+                    record[propertyName] = ((DateTimeOffset)propertyValue).ToUnixTimeMilliseconds();
                 }
                 else if(propertyValue is DateTimeOffset?)
                 {
-                    record[propertyName] = (propertyValue as DateTimeOffset?).Value.ToUnixTimeMilliseconds() * 1000000;
+                    record[propertyName] = (propertyValue as DateTimeOffset?).Value.ToUnixTimeMilliseconds();
                 }
                 else if(propertyValue.GetType().IsArray)
                 {
