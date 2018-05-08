@@ -135,11 +135,13 @@ namespace Audit.Fluentd.Providers
             SetProperty(record, "duration", auditEvent.Duration);
             SetProperty(record, "tenantId", auditEvent.TenantId);
 
+            //*********** Elastic search properties **************
             if(!string.IsNullOrEmpty(auditEvent.TenantId))
             {
                 var dateTime = DateTimeOffset.UtcNow;
-                SetProperty(record, "targetIndex", $"audit-{auditEvent.TenantId}-{dateTime.Year}.{dateTime.Month.ToString("D2")}.{dateTime.Day.ToString("D2")}");
+                SetProperty(record, "@target_index", $"audit-{auditEvent.TenantId}-{dateTime.Year}.{dateTime.Month.ToString("D2")}.{dateTime.Day.ToString("D2")}");
             }
+            //****************************************************
 
             SetProperty(record, "userName", auditEvent.UserName ?? auditEvent.Environment?.UserName);
 
