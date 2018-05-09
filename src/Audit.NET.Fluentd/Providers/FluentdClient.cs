@@ -52,6 +52,16 @@ namespace Audit.Fluentd.Providers
 
         public bool AsynchronusWrites { get; set; } = false;
 
+        public bool SendElasticSearchFields { get; set; } = true;
+
+        public enum AggregateBy
+        {
+            Day,
+            Month
+        }
+
+        public AggregateBy EleasticSearchIndexFormat { get; set; } = AggregateBy.Month;
+
         public Task Publish(AuditEvent auditEvent)
         {
             //Ensure processing task is started with first message being sent. By simply assigning the lazy value.
@@ -136,10 +146,21 @@ namespace Audit.Fluentd.Providers
             SetProperty(record, "tenantId", auditEvent.TenantId);
 
             //*********** Elastic search properties **************
-            if(!string.IsNullOrEmpty(auditEvent.TenantId))
-            {
-                var dateTime = DateTimeOffset.UtcNow;
-                SetProperty(record, "@target_index", $"audit-{auditEvent.TenantId}-{dateTime.Year}.{dateTime.Month.ToString("D2")}.{dateTime.Day.ToString("D2")}");
+            if (SendElasticSearchFields)
+            {                
+                if (!string.IsNullOrEmpty(auditEvent.TenantId))
+                {
+                    var dateTime = DateTimeOffset.UtcNow;
+
+                    if (EleasticSearchIndexFormat == AggregateBy.Month)
+                    {
+                        SetProperty(record, "@target_index", $"audit-{auditEvent.TenantId}-{dateTime.Year}.{dateTime.Month.ToString("D2")}");
+                    }
+                    else
+                    {
+                        SetProperty(record, "@target_index", $"audit-{auditEvent.TenantId}-{dateTime.Year}.{dateTime.Month.ToString("D2")}.{dateTime.Day.ToString("D2")}");                        
+                    }
+                }
             }
             //****************************************************
 

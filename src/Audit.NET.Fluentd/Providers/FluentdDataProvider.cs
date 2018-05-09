@@ -45,6 +45,11 @@ namespace Audit.Fluentd.Providers
         public bool AsynchronusWrites { get; set; } = false;
 
         /// <summary>
+        /// If enabled, sends additional elastic search metadata such as the index to use etc.
+        /// </summary>
+        public bool SendElasticSearchFields { get; set; } = true;
+
+        /// <summary>
         /// Sends an event as an Fluentd message
         /// </summary>
         /// <param name="auditEvent">The audit event being created.</param>
@@ -93,7 +98,8 @@ namespace Audit.Fluentd.Providers
                  Host = this.RemoteAddress,
                  Port = this.RemotePort,
                  Tag = this.Tag,
-                 AsynchronusWrites = this.AsynchronusWrites
+                 AsynchronusWrites = this.AsynchronusWrites,
+                 SendElasticSearchFields = this.SendElasticSearchFields
             };
         }
 
