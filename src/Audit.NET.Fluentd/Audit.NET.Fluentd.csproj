@@ -4,7 +4,7 @@
     <Description>Send Audit.NET Trail Logs via Fluentd forward protocol to a remote host</Description>
     <Copyright>Copyright 2018</Copyright>
     <AssemblyTitle>Audit.Fluentd</AssemblyTitle>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <Version>0.1.0</Version>
     <Authors>David Bown</Authors>
     <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
     <DefineConstants>$(DefineConstants);STRONG_NAME</DefineConstants>

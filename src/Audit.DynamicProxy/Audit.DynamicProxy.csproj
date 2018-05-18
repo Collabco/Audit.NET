@@ -4,7 +4,7 @@
     <Description>Generate Audit Logs by intercepting operation calls on any class without changing its code.</Description>
     <Copyright>Copyright 2016</Copyright>
     <AssemblyTitle>Audit.DynamicProxy</AssemblyTitle>
-    <VersionPrefix>12.0.0</VersionPrefix>
+    <Version>12.0.0</Version>
     <Authors>Federico Colombo</Authors>
     <TargetFrameworks>netstandard1.5;net45</TargetFrameworks>
     <DefineConstants>$(DefineConstants);STRONG_NAME</DefineConstants>
@@ -14,7 +14,7 @@
     <AssemblyOriginatorKeyFile>../StrongName/Audit.NET.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
-    <PackageId>Audit.DynamicProxy</PackageId>
+    <PackageId>Collabco.Audit.DynamicProxy</PackageId>
     <PackageTags>Audit;Trail;Log;Proxy;Castle;DynamicProxy</PackageTags>
     <PackageIconUrl>http://i.imgur.com/hVMM5WF.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/thepirat000/Audit.NET/tree/master/src/Audit.DynamicProxy</PackageProjectUrl>

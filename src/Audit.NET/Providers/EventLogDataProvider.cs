@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Audit.Core.Providers
 {
-#if NET45 || NETSTANDARD2_0
+#if NET45
     /// <summary>
     /// Writes to the windows event log
     /// </summary>
