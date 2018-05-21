@@ -33,7 +33,7 @@ namespace Audit.Core.ConfigurationApi
         /// <param name="filenameBuilder">Specifies the filename builder to get the filename to store the audit log for an event.</param>
         ICreationPolicyConfigurator UseFileLogProvider(string directoryPath = null, string filenamePrefix = null, Func<AuditEvent, string> directoryPathBuilder = null,
             Func<AuditEvent, string> filenameBuilder = null);
-#if NET45 || NETSTANDARD2_0
+#if NET45
         /// <summary>
         /// Store the events in the windows Event Log.
         /// </summary>
