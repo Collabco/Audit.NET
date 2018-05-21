@@ -168,15 +168,15 @@ namespace Audit.Fluentd.Providers
 
             if (auditEvent.Environment != null)
             {
-                var environmentDictinary = new Dictionary<string, object>();
-                SetProperty(environmentDictinary, "assemblyName", auditEvent.Environment.AssemblyName);
-                SetProperty(environmentDictinary, "callingMethodName", auditEvent.Environment.CallingMethodName);
-                SetProperty(environmentDictinary, "culture", auditEvent.Environment.Culture);
-                SetProperty(environmentDictinary, "domainName", auditEvent.Environment.DomainName);
-                SetProperty(environmentDictinary, "exception", auditEvent.Environment.Exception);                
-                SetProperty(environmentDictinary, "machineName", auditEvent.Environment.MachineName);
-                SetProperty(environmentDictinary, "userName", auditEvent.Environment.UserName);
-                SetProperty(record, "environment", environmentDictinary);
+                var environmentDictionary = new Dictionary<string, object>();
+                SetProperty(environmentDictionary, "assemblyName", auditEvent.Environment.AssemblyName);
+                SetProperty(environmentDictionary, "callingMethodName", auditEvent.Environment.CallingMethodName);
+                SetProperty(environmentDictionary, "culture", auditEvent.Environment.Culture);
+                SetProperty(environmentDictionary, "domainName", auditEvent.Environment.DomainName);
+                SetProperty(environmentDictionary, "exception", auditEvent.Environment.Exception);                
+                SetProperty(environmentDictionary, "machineName", auditEvent.Environment.MachineName);
+                SetProperty(environmentDictionary, "userName", auditEvent.Environment.UserName);
+                SetProperty(record, "environment", environmentDictionary);
             }
 
             if (auditEvent.Target != null)
