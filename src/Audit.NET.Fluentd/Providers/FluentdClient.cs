@@ -138,12 +138,14 @@ namespace Audit.Fluentd.Providers
 
             SetProperty(record, "id", auditEvent.CustomFields?["id"]); //This shouldn't throw a null reference exception because id is always generated in FluentDataProvider.
             SetProperty(record, "eventType", auditEvent.EventType);
-            SetProperty(record, "source", auditEvent.Source ?? auditEvent.Environment?.AssemblyName);
+            SetProperty(record, "source", auditEvent.Source);
+            SetProperty(record, "eventId", auditEvent.EventId);
             SetProperty(record, "level", auditEvent.AuditLevel);
             SetProperty(record, "startDate", auditEvent.StartDate);
             SetProperty(record, "endDate", auditEvent.EndDate);
             SetProperty(record, "duration", auditEvent.Duration);
             SetProperty(record, "tenantId", auditEvent.TenantId);
+            SetProperty(record, "userName", auditEvent.UserName);
 
             //*********** Elastic search properties **************
             if (SendElasticSearchFields)
@@ -164,16 +166,17 @@ namespace Audit.Fluentd.Providers
             }
             //****************************************************
 
-            SetProperty(record, "userName", auditEvent.UserName ?? auditEvent.Environment?.UserName);
-
             if (auditEvent.Environment != null)
             {
-                SetProperty(record, "assemblyName", auditEvent.Environment.AssemblyName);
-                SetProperty(record, "callingMethodName", auditEvent.Environment.CallingMethodName);
-                SetProperty(record, "culture", auditEvent.Environment.Culture);
-                SetProperty(record, "domainName", auditEvent.Environment.DomainName);
-                SetProperty(record, "exception", auditEvent.Environment.Exception);                
-                SetProperty(record, "machineName", auditEvent.Environment.MachineName);            
+                var environmentDictinary = new Dictionary<string, object>();
+                SetProperty(environmentDictinary, "assemblyName", auditEvent.Environment.AssemblyName);
+                SetProperty(environmentDictinary, "callingMethodName", auditEvent.Environment.CallingMethodName);
+                SetProperty(environmentDictinary, "culture", auditEvent.Environment.Culture);
+                SetProperty(environmentDictinary, "domainName", auditEvent.Environment.DomainName);
+                SetProperty(environmentDictinary, "exception", auditEvent.Environment.Exception);                
+                SetProperty(environmentDictinary, "machineName", auditEvent.Environment.MachineName);
+                SetProperty(environmentDictinary, "userName", auditEvent.Environment.UserName);
+                SetProperty(record, "environment", environmentDictinary);
             }
 
             if (auditEvent.Target != null)
