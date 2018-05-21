@@ -165,6 +165,19 @@ namespace Audit.Core
         }
 
         /// <summary>
+        /// Creates an audit scope with the given extra fields, and saves it right away.
+        /// </summary>
+        /// <param name="source">Source of the event.</param>
+        /// <param name="eventType">Type of the event.</param>
+        /// <param name="extraFields">An anonymous object that can contain additional fields to be merged into the audit event.</param>
+        /// <param name="dataProvider">The data provider to use. NULL to use the configured default data provider.</param>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static async Task CreateAndSaveAsync(string source, string eventType, object extraFields, AuditDataProvider dataProvider = null)
+        {
+            await new AuditScope(new AuditScopeOptions(source, eventType, null, extraFields, dataProvider, null, true)).StartAsync();
+        }
+
+        /// <summary>
         /// Creates an audit scope for a target object and an event type.
         /// </summary>
         /// <param name="eventType">Type of the event.</param>
