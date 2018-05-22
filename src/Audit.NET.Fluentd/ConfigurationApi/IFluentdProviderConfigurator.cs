@@ -24,8 +24,13 @@ namespace Audit.Fluentd.Configuration
         /// Specifies the tag of the message to send to Fluentd
         /// </summary>
         /// <param name="tag">The tag of the message to send to Fluentd</param>
-        /// <returns></returns>
         IFluentdProviderConfigurator Tag(string tag);
+
+        /// <summary>
+        /// Specfies whether or not writes should be carried out asynchronusly
+        /// </summary>
+        /// <param name="asynchronus">Boolean value indicating whether to do asynchronus writes</param>
+        IFluentdProviderConfigurator AsynchronusWrites(bool asynchronus);
 
     }
 }
