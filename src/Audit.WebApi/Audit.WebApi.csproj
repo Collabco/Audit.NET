@@ -41,7 +41,7 @@
   </ItemGroup>  
   
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-    <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.2.3" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.2.7" />
     <PackageReference Include="Microsoft.AspNet.WebApi.Owin" Version="5.2.3" />
     <Reference Include="System.Web" />
     <Reference Include="System" />
